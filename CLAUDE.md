@@ -4,86 +4,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 15 + Supabase boilerplate application using TypeScript, Tailwind CSS, and shadcn/ui components. The project uses App Router architecture with Server Components and Server Actions.
+This is a Next.js 15 boilerplate with React 19, TypeScript, Supabase integration, and shadcn/ui components. It uses the App Router architecture.
 
-## Development Commands
+## Essential Commands
 
 ```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start
-
-# Run linting
-npm run lint
-
-# Type-check (run TypeScript compiler)
-npx tsc --noEmit
+# Development
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Run ESLint
+npm run type-check       # Run TypeScript compiler
+npm run db:generate-types # Generate TypeScript types from Supabase
 ```
 
 ## Architecture
 
-### Tech Stack
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript 5
-- **Styling**: Tailwind CSS 4, shadcn/ui components
+### Key Technologies
+- **Frontend**: Next.js 15.3.2, React 19.1.0, TypeScript 5
+- **Styling**: Tailwind CSS 4 (alpha), shadcn/ui components
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time, Storage)
-- **State Management**: React hooks and Server Components
+- **Forms**: react-hook-form with zod validation
 
-### Key Directories
+### Project Structure
 - `src/app/` - Next.js App Router pages and layouts
-- `src/components/` - React components including 40+ shadcn/ui components
-- `src/lib/supabase/` - Supabase client configurations (client, server, middleware)
-- `supabase/` - Database migrations, functions, and configuration
+- `src/components/` - React components
+- `src/components/ui/` - 40+ shadcn/ui components (button, card, dialog, form, etc.)
+- `src/lib/supabase/` - Supabase client configuration for server/client/middleware
+- `src/hooks/` - Custom React hooks
 
-### Supabase Integration
-The project has three Supabase client configurations:
-- `client.ts` - Browser client for client components
-- `server.ts` - Server client for Server Components and Actions
-- `middleware.ts` - Middleware client for auth checks
+### Path Mapping
+- `@/*` maps to `./src/*` - always use this import pattern
 
-### Important Patterns
+## Important Patterns
 
-1. **Server Components by Default**: All components are Server Components unless marked with 'use client'
+### Supabase Usage
+- Client components: Use `createClient()` from `@/lib/supabase/client`
+- Server components: Use `createClient()` from `@/lib/supabase/server`
+- Middleware: Use `createClient()` from `@/lib/supabase/middleware`
+- Always handle errors: throw in Server Components, setState in Client Components
+- Use real-time subscriptions only in Client Components
 
-2. **Supabase Auth**: Authentication is handled via Supabase with middleware protection
+### Component Patterns
+- Always prefer shadcn/ui components: `import { Button } from "@/components/ui/button"`
+- Available components: Button, Card, Dialog, Form, Input, Select, Table, Alert, Badge, Tabs, Sheet, etc.
+- Use proper component composition (e.g., Card with CardHeader, CardTitle, CardContent)
+- TypeScript interfaces for props with `children: React.ReactNode`
 
-3. **Database Access**: Use appropriate Supabase client based on context:
-   ```typescript
-   // In Server Components/Actions
-   import { createClient } from '@/lib/supabase/server'
-   
-   // In Client Components
-   import { createClient } from '@/lib/supabase/client'
-   ```
+### Server vs Client Components
+- Default to Server Components
+- Use `"use client"` directive only when needed (interactivity, browser APIs, real-time)
+- Server Actions are preferred over API routes
+- Data fetching in Server Components, real-time in Client Components
 
-4. **UI Components**: Use existing shadcn/ui components from `src/components/ui/` before creating new ones
+### Next.js App Router
+- Use these file conventions in `src/app/`:
+  - `page.tsx` for pages
+  - `layout.tsx` for layouts
+  - `loading.tsx` for loading states
+  - `error.tsx` for error boundaries
+  - `not-found.tsx` for 404 pages
 
-5. **Type Safety**: TypeScript strict mode is enabled. Always define proper types for:
-   - Database schemas
-   - API responses
-   - Component props
-   - Server Action parameters
+### TypeScript Patterns
+- Strict mode is enabled - always provide types
+- Use generated database types: `type User = Database['public']['Tables']['users']['Row']`
+- React event types: `React.FormEvent<HTMLFormElement>`
 
-6. **Styling**: Use Tailwind CSS classes. Follow existing patterns in components.
+## Database Patterns
+- Table naming: snake_case plurals (e.g., `users`, `user_profiles`)
+- Column naming: snake_case singular (e.g., `user_id`, `created_at`)
+- Foreign keys: `{table_singular}_id` format
+- Always use `public` schema
+- Enable RLS on all tables with policies
+- Add table comments describing purpose
+- Specify columns in queries instead of `select('*')`
 
-## Database Guidelines
-
-When working with Supabase:
-- Place migrations in `supabase/migrations/`
-- Use Row Level Security (RLS) policies
-- Follow PostgreSQL naming conventions (snake_case for tables/columns)
-- Define proper foreign key relationships
-- Add appropriate indexes for query performance
-
-## Component Development
-
-When creating new components:
-1. Check if a similar component exists in `src/components/ui/`
-2. Follow the existing component patterns (forwardRef, className merging with cn())
-3. Use TypeScript interfaces for props
-4. Implement proper accessibility attributes
-5. Support both light and dark themes
+## Deployment
+- Optimized for Vercel deployment
+- Environment variables required: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
