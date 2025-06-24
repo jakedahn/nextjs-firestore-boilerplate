@@ -2,11 +2,6 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
-/**
- * Custom hook to check if the screen is mobile.
- * 
- * @returns {boolean} True if the screen is mobile, false otherwise.
- */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
