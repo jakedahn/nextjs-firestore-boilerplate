@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 15 boilerplate with React 19, TypeScript, Supabase integration, and shadcn/ui components. It uses the App Router architecture.
+This is a Next.js 15 boilerplate with React 19, TypeScript, Firebase/Firestore integration, and shadcn/ui components. It uses the App Router architecture.
 
 ## Essential Commands
 
@@ -15,22 +15,23 @@ npm run build            # Build for production
 npm run start            # Start production server
 npm run lint             # Run ESLint
 npm run type-check       # Run TypeScript compiler
-npm run db:generate-types # Generate TypeScript types from Supabase
 ```
 
 ## Architecture
 
 ### Key Technologies
-- **Frontend**: Next.js 15.3.2, React 19.1.0, TypeScript 5
+- **Frontend**: Next.js 15.3.5, React 19.1.0, TypeScript 5
 - **Styling**: Tailwind CSS 4 (alpha), shadcn/ui components
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time, Storage)
+- **Backend**: Firebase (Firestore, Auth, Storage)
 - **Forms**: react-hook-form with zod validation
 
 ### Project Structure
 - `src/app/` - Next.js App Router pages and layouts
+- `src/app/auth/` - Authentication pages (login, register, logout)
+- `src/app/dashboard/` - Protected dashboard pages
 - `src/components/` - React components
 - `src/components/ui/` - 40+ shadcn/ui components (button, card, dialog, form, etc.)
-- `src/lib/supabase/` - Supabase client configuration for server/client/middleware
+- `src/lib/firebase/` - Firebase client configuration and utilities
 - `src/hooks/` - Custom React hooks
 
 ### Path Mapping
@@ -38,12 +39,21 @@ npm run db:generate-types # Generate TypeScript types from Supabase
 
 ## Important Patterns
 
-### Supabase Usage
-- Client components: Use `createClient()` from `@/lib/supabase/client`
-- Server components: Use `createClient()` from `@/lib/supabase/server`
-- Middleware: Use `createClient()` from `@/lib/supabase/middleware`
-- Always handle errors: throw in Server Components, setState in Client Components
-- Use real-time subscriptions only in Client Components
+### Firebase/Firestore Usage
+- Client components: Use imports from `@/lib/firebase/client`
+- Server components: Use imports from `@/lib/firebase/server`
+- Auth utilities: Use imports from `@/lib/firebase/auth`
+- Database operations: Use `FirestoreService` class from `@/lib/firebase/firestore`
+- Type definitions: Import from `@/lib/firebase/types`
+
+### Authentication Patterns
+- Use `AuthProvider` context for accessing user state
+- Protected routes are handled by middleware.ts
+- Authentication flows:
+  - Email/Password signup with email verification
+  - Email/Password signin
+  - Google OAuth signin
+  - Password reset via email
 
 ### Component Patterns
 - Always prefer shadcn/ui components: `import { Button } from "@/components/ui/button"`
@@ -54,8 +64,7 @@ npm run db:generate-types # Generate TypeScript types from Supabase
 ### Server vs Client Components
 - Default to Server Components
 - Use `"use client"` directive only when needed (interactivity, browser APIs, real-time)
-- Server Actions are preferred over API routes
-- Data fetching in Server Components, real-time in Client Components
+- Data fetching in Server Components, real-time subscriptions in Client Components
 
 ### Next.js App Router
 - Use these file conventions in `src/app/`:
@@ -64,21 +73,56 @@ npm run db:generate-types # Generate TypeScript types from Supabase
   - `loading.tsx` for loading states
   - `error.tsx` for error boundaries
   - `not-found.tsx` for 404 pages
+  - `route.ts` for API routes
 
 ### TypeScript Patterns
 - Strict mode is enabled - always provide types
-- Use generated database types: `type User = Database['public']['Tables']['users']['Row']`
+- Use defined types from `@/lib/firebase/types`
 - React event types: `React.FormEvent<HTMLFormElement>`
 
-## Database Patterns
-- Table naming: snake_case plurals (e.g., `users`, `user_profiles`)
-- Column naming: snake_case singular (e.g., `user_id`, `created_at`)
-- Foreign keys: `{table_singular}_id` format
-- Always use `public` schema
-- Enable RLS on all tables with policies
-- Add table comments describing purpose
-- Specify columns in queries instead of `select('*')`
+## Firestore Patterns
+- Collection naming: lowercase, plural (e.g., `users`, `todos`, `posts`)
+- Document structure:
+  - Always include `createdAt` and `updatedAt` timestamps
+  - Use `serverTimestamp()` for automatic timestamps
+- Use `FirestoreService` class for CRUD operations:
+  ```typescript
+  const todosService = new FirestoreService<Todo>(Collections.TODOS);
+  await todosService.create({ title: 'New Todo', userId: user.uid });
+  ```
+- Real-time subscriptions:
+  ```typescript
+  const unsubscribe = todosService.subscribe(
+    [where('userId', '==', user.uid)],
+    (todos) => setTodos(todos)
+  );
+  ```
+- Always handle errors appropriately
+
+## Security Patterns
+- Environment variables:
+  - `NEXT_PUBLIC_FIREBASE_*` for client-side config
+  - `FIREBASE_SERVICE_ACCOUNT_KEY` for server-side admin SDK
+- Never expose service account credentials
+- Use Firebase Security Rules for Firestore
+- Validate user permissions in server-side code
 
 ## Deployment
 - Optimized for Vercel deployment
-- Environment variables required: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Required environment variables:
+  - `NEXT_PUBLIC_FIREBASE_API_KEY`
+  - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+  - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+  - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+  - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+  - `NEXT_PUBLIC_FIREBASE_APP_ID`
+  - `FIREBASE_SERVICE_ACCOUNT_BASE64` (base64 encoded service account JSON for production)
+
+## Development Workflow Reminders
+- Do not try to run the dev server, it is always running in another tab
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

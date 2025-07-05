@@ -8,11 +8,14 @@ alwaysApply: false
 ## Project Structure
 This is a Next.js 15 application using the App Router with the following structure:
 - [src/app/](mdc:src/app) - App Router pages and layouts
+- [src/app/auth/](mdc:src/app/auth) - Authentication pages (login, register)
+- [src/app/dashboard/](mdc:src/app/dashboard) - Protected dashboard pages
 - [src/components/](mdc:src/components) - Reusable React components
 - [src/components/ui/](mdc:src/components/ui) - shadcn/ui components
 - [src/hooks/](mdc:src/hooks) - Custom React hooks
 - [src/lib/](mdc:src/lib) - Utility functions and configurations
-- [src/lib/supabase/](mdc:src/lib/supabase) - Supabase client and utilities
+- [src/lib/firebase/](mdc:src/lib/firebase) - Firebase client, auth, and Firestore utilities
+- [src/middleware.ts](mdc:src/middleware.ts) - Route protection middleware
 
 ## Next.js 15 Guidelines
 
@@ -23,18 +26,30 @@ This is a Next.js 15 application using the App Router with the following structu
 - Implement `loading.tsx` for loading states
 - Create `error.tsx` for error boundaries
 - Use `not-found.tsx` for 404 pages
+- API routes use `route.ts` files
 
 ### Server vs Client Components
 - Prefer Server Components by default for better performance
-- Use `"use client"` directive only when needed (interactivity, hooks, browser APIs)
+- Use `"use client"` directive only when needed (interactivity, hooks, browser APIs, Firebase real-time)
 - Keep data fetching in Server Components when possible
-- Use React 19 features like `use()` hook for data fetching
+- Use Client Components for Firebase real-time subscriptions
+- Authentication state requires Client Components
+
+### Firebase Integration Patterns
+- **Client-side**: Import from `@/lib/firebase/client`
+- **Server-side**: Import from `@/lib/firebase/server`
+- **Authentication**: Import from `@/lib/firebase/auth`
+- **Database**: Use `FirestoreService` from `@/lib/firebase/firestore`
+- **Types**: Import from `@/lib/firebase/types`
+- Wrap app with `AuthProvider` for authentication context
+- Use `useAuth()` hook in Client Components
 
 ### File Organization
 - Group related components in feature folders
 - Use barrel exports (`index.ts`) for clean imports
 - Keep components small and focused
 - Use TypeScript for all components and utilities
+- Separate Firebase logic into dedicated service files
 
 ### Performance Optimizations
 - Use `next/image` for optimized images
@@ -42,24 +57,51 @@ This is a Next.js 15 application using the App Router with the following structu
 - Use `next/font` for font optimization
 - Leverage static generation when possible
 - Use `loading.tsx` and `Suspense` for progressive loading
+- Enable Firestore offline persistence for better UX
 
 ### Import Patterns
 - Use `@/` path mapping for imports from `src/`
 - Import shadcn/ui components from `@/components/ui/`
 - Import utilities from `@/lib/`
 - Import hooks from `@/hooks/`
+- Import Firebase utilities from `@/lib/firebase/`
 
-Example component structure:
+Example component structure with Firebase:
 ```tsx
+'use client'
+
+import { useAuth } from "@/lib/firebase/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
+import { FirestoreService } from "@/lib/firebase/firestore"
+import { Todo } from "@/lib/firebase/types"
+
+const todosService = new FirestoreService<Todo>('todos')
 
 export default function MyComponent() {
+  const { user } = useAuth()
+  
+  const handleCreate = async () => {
+    if (!user) return
+    
+    await todosService.create({
+      title: 'New Todo',
+      userId: user.uid,
+      completed: false
+    })
+  }
+  
   return (
     <Card>
-      <Button>Click me</Button>
+      <Button onClick={handleCreate}>Add Todo</Button>
     </Card>
   )
 }
 ```
+
+### Security Best Practices
+- Never expose service account credentials in client code
+- Use environment variables with `NEXT_PUBLIC_` prefix for client-side config
+- Implement proper Firebase Security Rules
+- Validate user permissions in Server Components
+- Use middleware for route protection
